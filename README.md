@@ -6,7 +6,8 @@ Prerequisites:
 * Python 3.4.1+ - required to run the script
 * OpenSSL - used to view certificate data of the user's visited websites
 * Wireshark - used to obtain the URLs of HTTP traffic
-* Fiddler - a free HTTP proxy that can perform a self-MitM to decrypt HTTPS traffic 
+* [BrowsingHistoryView](http://www.nirsoft.net/utils/browsing_history_view.html/) - open source tool created by Nif Sofer to obtain browsing history of Windows machines
+ 
 
 ### Authors
 Benny Tan, Computing Security, bt4168@rit.edu
