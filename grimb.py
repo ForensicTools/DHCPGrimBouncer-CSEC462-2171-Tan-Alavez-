@@ -28,18 +28,14 @@ from datetime import datetime
 #
 # Return: .csv file
 ###########
-def bhv():			 	
-    if(os.path.isdir("C:\browsinghistoryview-x64")):
-        print("Yes")
-    else:
-        print("No")
-
+def bhv():
+    
     URL_folder = r'C:\GrimBouncer\Browsing_History'         # path folder to store URL csv files
     if not os.path.exists(URL_folder):                      # check to see if folder already exists
         os.makedirs(URL_folder)                             # create the folder
     # uncomment this to make a bhv csv
-##    bhv_command = r'C:\browsinghistoryview-x64\BrowsingHistoryView.exe /scomma C:\GrimBouncer\Browsing_History'
-##    os.system(bhv_command + "\\" + str(time.strftime("%Y-%m-%d_T%H%M%S"))  + ".csv")    # csv file generated
+    bhv_command = r'C:\browsinghistoryview-x64\BrowsingHistoryView.exe /scomma C:\GrimBouncer\Browsing_History'
+    os.system(bhv_command + "\\" + str(time.strftime("%Y-%m-%d_T%H%M%S"))  + ".csv")    # csv file generated
 
 ############
 # function:     gen_csv
@@ -55,11 +51,11 @@ def gen_cert(filename):
     certcsv_folder = r'C:\GrimBouncer\Certificate_CSVs'     # path folder to store URL csv files
     if not os.path.exists(certcsv_folder):                  # check to see if folder already exists
         os.makedirs(certcsv_folder)                         # create the folder
-    certfile = open(r'C:\GrimBouncer\Certificate_CSVs\\' + filename[:-4] + '_certs.csv', 'w')
+    certfile = open(r'C:\GrimBouncer\Certificate_CSVs\\' + filename[:-4] + '_certs.csv', 'w', newline='')
 
-    domains = set()                # list to store just domains
+    domains = set()             # set to store just domains
     domains_certs = dict()      # dict to store domains and respective cert information
-    FQDN = set()                   # list to store full domains
+    FQDN = set()                # set to store full domains
 
     # we know:
     #   browsing history csv has URLs
@@ -69,8 +65,7 @@ def gen_cert(filename):
     with open(r'C:\GrimBouncer\Browsing_History\\' + filename, 'r') as f:
         reader = csv.reader(f, delimiter=',')
         write_to_cert = csv.writer(certfile, quoting=csv.QUOTE_ALL)
-        write_to_export = csv.writer(exportfile, quoting=csv.QUOTE_ALL)
-
+        
         for row in reader:
             url = row[0]
             if(url[0:4] == "http"):
@@ -113,18 +108,23 @@ def gen_cert(filename):
         for key, value in domains_certs.items():
             cert_lst = []
             
-##            write_to_cert.writerow([key, value])
+            write_to_cert.writerow([key, value])
 
     certfile.close()          
     f.close()
-    exportfile.close()
-
+    
+############
+# function:     gen_export
+#
+# Description:  Generates a final containing the URL, date and time, and times visited
+#               from the bhv(), and the parsed certificate information from gen_export()
+############
 def gen_export(filename):
     
     exportcsv_folder = r'C:\GrimBouncer\Export_CSVs'        # path folder to store URL csv files
     if not os.path.exists(exportcsv_folder):                # check to see if folder already exists
         os.makedirs(exportcsv_folder)                       # create the folder
-    exportfile = open(r'C:\GrimBouncer\Export_CSVs\\' + filename[:-4] + '_export.csv', 'r+')
+    exportfile = open(r'C:\GrimBouncer\Export_CSVs\\' + filename[:-4] + '_export.csv', 'w+', newline='')
 
     no_dupe_URLs = set()
 
@@ -135,7 +135,8 @@ def gen_export(filename):
         write_to_export.writerow(["URL","DateVisited","TimesVisited","SigAlgo",
                                   "IssuerC","IssuerO","IssuerOU","IssuerCN",
                                   "SubjectC","SubjectO","SubjectOU","SubjectCN",
-                                  "IssueDate","ExpireDate","Security"])
+                                  "IssueDate","ExpireDate","AuthorityKey","SubjectKey",
+                                  "Security"])
 
         cr_urls = []
         cr_certs = []
@@ -144,10 +145,10 @@ def gen_export(filename):
                 cr_urls.append(cr_row[0])       # store cert csv urls into list
                 cr_certs.append(cr_row[1])      # store cert csv certs into list
 
-        months = dict(Jan=1,Feb=2,Mar=3,Apr=4,May=5,Jun=6,
-                      Jul=7,Aug=8,Sep=9,Oct=10,Nov=11,Dec=12)
-
         count = 0
+        secure = 0
+        notsecure = 0
+        unknown = 0
         for bh_row in bh_reader:
             url = bh_row[0]
             if( (url[0:4] == "http") and (url not in no_dupe_URLs) ):
@@ -162,11 +163,13 @@ def gen_export(filename):
                     if(url.split("//")[-1].split("/")[0] == cr_urls[count]):
                         cert_lst.append(cr_certs[count])
                         if(cert_lst[3] == "[b'null']"):
-                            cert_lst.extend(["[b'null']"] * 10)
+                            cert_lst.extend(["[b'null']"] * 12)
                             cert_lst.append("Unknown")
+                            unknown += 1
                         elif(cert_lst[3] == "[]"):
-                            cert_lst.extend(["[]"] * 10)
+                            cert_lst.extend(["[]"] * 12)
                             cert_lst.append("Unknown")
+                            unknown += 1
                         else:
                         # Issuer 
                             issuer = re.findall(r"\Issuer:(.*)\Validity", cert_lst[3])
@@ -236,6 +239,17 @@ def gen_export(filename):
                                 cert_lst.append(expiredate[0].split(",")[0])
                             if(not expiredate):
                                 cert_lst.append("Not listed")
+                        # Authority Key and Subject Key
+                            authoritykey = re.findall(r"\keyid:(.*?)'", cert_lst[3])
+                            if(authoritykey):
+                                cert_lst.append(authoritykey[0].split(",")[0])
+                            if(not authoritykey):
+                                cert_lst.append("[]")
+                            subjectkey = re.findall(r"\Subject Key Identifier: ', b'                (.*?)'", cert_lst[3])
+                            if(subjectkey):
+                                cert_lst.append(subjectkey[0].split(",")[0])
+                            if(not subjectkey):
+                                cert_lst.append("[]")
                         # Signature Algorithm
                             sigalgo = re.findall(r"\Signature Algorithm: (.*?)'", cert_lst[3])[0]
                             cert_lst[3] = (sigalgo)
@@ -244,18 +258,56 @@ def gen_export(filename):
                             # -----------------
                             # check for expired cert
                             cur_time = datetime.utcnow()    # 2017-11-17 20:41:21.030978
-                            #expire = (str(cert_lst[12])[0:7] + str(cert_lst[12])[16:20])
                             # convert expiration date into datetime object
                             cert_expiration = datetime.strptime(str(cert_lst[13])[:-4], "%b %d %H:%M:%S %Y")
                             if(cert_expiration <= cur_time):
-                                print("cert expired")
-                                cert_lst.append("Not secure, cert has expired")
+                                print(str(cert_lst[0]) + " has an expired certificate.")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # check for self-signed cert
+                            elif((cert_lst[5] == cert_lst[9]) and (cert_lst[6] == cert_lst[10])
+                                 and (cert_lst[14] == cert_lst[15])):
+                                print(str(cert_lst[0]) + " has a self-signed certificate.")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # Superfish
+                            elif((cert_lst[5] == "Superfish, Inc.") or (cert_lst[7] == "Superfish, Inc.")):
+                                print(str(cert_lst[0]) + " has a Superfish certificate")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # eDellRoot
+                            elif((cert_lst[7] == "eDellRoot")):
+                                print(str(cert_lst[0]) + " has an eDellRoot certificate")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # DSDTestProvider
+                            elif((cert_lst[5] == "DSDTestProvider") or (cert_lst[6] == "DSDTestProvider") or (cert_lst[7] == "DSDTestProvider")):
+                                print(str(cert_lst[0]) + " has a DSDTestProvider certificate")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # preact-cli
+                            elif((cert_lst[5]) == "Acme Co"):
+                                print(str(cert_lst[0]) + " has a preact-cli certificate")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            # webpack-dev-server
+                            elif((cert_lst[7]) == "localhost"):
+                                print(str(cert_lst[0]) + " has a localhost certificate")
+                                cert_lst.append("NotSecure")
+                                notsecure += 1
+                            else:
+                                cert_lst.append("Secure")
+                                secure += 1
                         count = 0
                         break
                     else:
                         count += 1
-                        
+      
                 write_to_export.writerow(cert_lst)
+                
+        print("\nSecure websites: " + "\t" + str(secure))
+        print("Not Secure websites: " + "\t" + str(notsecure))
+        print("Unknown websites: " + "\t" + str(unknown))
 
     exportfile.close()
 
@@ -273,7 +325,7 @@ def main():
         print("OS is not Windows")
         return
 
-    bhv()           # call BrowsingHistoryView.exe to generate a .txt file
+    bhv()                   # call BrowsingHistoryView.exe to generate a .txt file
 
     print("\n----------------------------------")
     print("Current browsing history logs: ")
@@ -284,8 +336,8 @@ def main():
     print("-----------------------------------\n\n\n")
     filename = input("Enter browsing history log: ")
 
-    #gen_cert(filename)
-    gen_export(filename)
+    gen_cert(filename)      # generate a csv with domains and certs
+    gen_export(filename)    # generate a final csv with URLs and cert info
 
 
 main()
