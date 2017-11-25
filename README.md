@@ -5,7 +5,7 @@ GrimBouncer is a tool that utilizes one's browsing history and OpenSSL to visual
 ### Installation
 Prerequisites:
 * Python 3.4.1+ - required to run the script
-* OpenSSL - used to view certificate data of the user's visited websites
+* [OpenSSL](indy.fulgan.com/SSL/openssl-0.9.8r-i386-win32-rev2.zip) - used to view certificate data of the user's visited websites
 * [BrowsingHistoryView](http://www.nirsoft.net/utils/browsing_history_view.html/) - open source tool created by Nif Sofer to obtain browsing history of Windows machines
 * d3 v.3.5.5 - implements the visualization aspect of GrimBouncer
 
@@ -26,6 +26,9 @@ OpenSSL must also be specified as an environment variable by placing it in your 
 * Likewise, the command on certain websites will result in an error, which will return an empty list([]) in the CSV -- these particular entries are populated with a [] in each column
 * An export CSV with a large amount of entries may cause the visualization to appear overly cluttered and laggy
 * Possible number of false positives/false negatives regarding the security of some websites
+
+### Disclaimer
+Utilizes [Interactive Bubble Chart](https://bl.ocks.org/danielatkin/57ea2f55b79ae686dfc7) by danielatkins; it has been modified to work with the CSV created from the script and allows the user to input different files 
 
 ### Authors
 Benny Tan, Computing Security, bt4168@rit.edu
